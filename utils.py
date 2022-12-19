@@ -112,3 +112,9 @@ def projection(pos, rot, src):
         tmp = transform(pts, pos, rot)
         points[i, :] = tmp[i, :] / np.linalg.norm(tmp[i, :])  # normalize
     return points
+
+
+def skew_symmetric(src):
+    return np.array([[0, -src[2], src[1]],
+                     [src[2], 0, -src[0]],
+                     [-src[1], src[0], 0]])

@@ -19,10 +19,35 @@ def find_essential_mat(pts1, pts2):
 
     ue, se, vhe = np.linalg.svd(vec)
     ret = ue @ np.diag([1, 1, 0]) @ vhe
-    print(ret)
-    print(emat @ ret.reshape(9, -1))
+    # print(ret)
+    # print(emat @ ret.reshape(9, -1))
 
     return ret
+
+
+def decompose_essential_mat(e, pts):
+    eet = e @ e.transpose()
+    u, s, vh = np.linalg.svd(eet)
+    t1 = vh[2, :]
+    print(t1)
+
+    sst1 = utils.skew_symmetric(t1)
+    sum_ab = 0
+    for pt in pts:
+        a = sst1 @ pt
+        b = e @ pt
+        sum_ab += np.dot(a.transpose(), b)
+
+    t2 = -t1
+    if sum_ab >= 0:
+        e1 = e
+        e2 = -e
+    else:
+        e1 = -e
+        e2 = e
+
+    k = np.cross(-t1, e1)
+    uk, sk, vhk = np.linalg.svd(k)
 
 
 def run():
@@ -40,10 +65,8 @@ def run():
     cv2.waitKey(0)
 
     e = find_essential_mat(pp, p2)
-    r1, r2, t = cv2.decomposeEssentialMat(e)
-    print(r1)
-    print(r2)
-    print(t)
+    # r1, r2, t = cv2.decomposeEssentialMat(e)
+    decompose_essential_mat(e, pp)
 
 
 if __name__ == "__main__":
