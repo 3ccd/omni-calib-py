@@ -25,7 +25,7 @@ def find_essential_mat(pts1, pts2):
     return ret
 
 
-def decompose_essential_mat(e, pts):
+def decompose_essential_mat(e, pts, pts2):
     eet = e @ e.transpose()
     u, s, vh = np.linalg.svd(eet)
     t1 = vh[2, :]
@@ -41,13 +41,26 @@ def decompose_essential_mat(e, pts):
     t2 = -t1
     if sum_ab >= 0:
         e1 = e
-        e2 = -e
     else:
         e1 = -e
-        e2 = e
 
-    k = np.cross(-t1, e1)
+    k = -sst1 @ e1
     uk, sk, vhk = np.linalg.svd(k)
+    r = uk @ np.diag([1, 1, np.linalg.det(uk @ vhk.transpose())]) @ vhk.transpose()
+    print(r)
+
+    sum_ab = 0
+    for i in range(pts.shape[0]):
+        a = np.cross(r.transpose() @ t1, r.transpose() @ pts[i])
+        b = np.cross(r.transpose() @ pts[i], pts2[i])
+        sum_ab += np.dot(a.transpose(), b)
+
+    if sum_ab > 0:
+        t = t1
+    else:
+        t = t2
+
+    return r, t
 
 
 def run():
@@ -58,15 +71,25 @@ def run():
     pc = 20
 
     rp = utils.gen_points(pc)
-    pp = utils.projection([1, 2, 3], [0, 0, 0], rp)
-    p2 = utils.projection([0, -3, 0], [np.radians(60), np.radians(20.0), 0], rp)
+    pp = utils.projection([0, 0, 0], [0, 0, 0], rp)
+    p2 = utils.projection([0, -1, 0], [0, np.radians(40.0), 0], rp)
     utils.draw_points(img, pp, p2)
     cv2.imshow('show', img)
     cv2.waitKey(0)
 
     e = find_essential_mat(pp, p2)
-    # r1, r2, t = cv2.decomposeEssentialMat(e)
-    decompose_essential_mat(e, pp)
+    r1, r2, t = cv2.decomposeEssentialMat(e)
+    print(r1)
+    r, t = decompose_essential_mat(e, pp, p2)
+
+    p2_cal = np.zeros(p2.shape)
+    for i in range(p2.shape[0]):
+        p2_cal[i] = p2[i] @ r.transpose()
+
+    img = np.zeros([512, 256, 3], dtype=np.uint8)
+    utils.draw_points(img, pp, p2_cal)
+    cv2.imshow('show1', img)
+    cv2.waitKey(0)
 
 
 if __name__ == "__main__":
