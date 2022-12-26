@@ -20,7 +20,6 @@ def stereo_img():
     img2 = cv2.imread("resources/R0010147.JPG")
 
     corners = utils.find_corners(img, (12, 8))
-    print(corners)
     pp = utils.equi_to_xyz_array(corners)
 
     corners2 = utils.find_corners(img2, (12, 8))
@@ -36,7 +35,12 @@ def stereo_img():
     cv2.imshow("img1", color2)
     cv2.waitKey(0)
 
-    r, t = run(pp, pp2)
+    r, _ = run(pp, pp2)
+
+    map_x, map_y = utils.rotate_equi((color2.shape[1], color2.shape[0]), r)
+    cal_img = cv2.remap(color2, map_x, map_y, cv2.INTER_LINEAR)
+    cv2.imshow("calibrated", cal_img)
+    cv2.waitKey(0)
 
 
 def run(pp, p2):

@@ -102,7 +102,7 @@ def projection(pos, rot, src):
     """
     project a points onto a unit-sphere
     :param pos: sphere center
-    :param pos: sphere rotation
+    :param rot: sphere rotation
     :param src: source points
     :return: projected points
     """
@@ -224,3 +224,39 @@ def decompose_essential_mat(e, pts, pts2):
         t = t2
 
     return r, t
+
+
+def rotate_equi(img_size, rot):
+    width = img_size[0]
+    height = img_size[1]
+
+    x, y = np.meshgrid(np.linspace(-1.0, 1.0, width),
+                       np.linspace(-1.0, 1.0, height))
+
+    longitude = x * math.pi
+    latitude = (y * math.pi) / 2
+
+    nx = np.cos(latitude) * np.cos(longitude)
+    ny = np.cos(latitude) * np.sin(longitude)
+    nz = np.sin(latitude)
+
+    nxr = np.zeros(nx.shape)
+    nyr = np.zeros(ny.shape)
+    nzr = np.zeros(nz.shape)
+    for i in range(height):
+        for j in range(width):
+            pos = np.array([nx[i, j], ny[i, j], nz[i, j]])
+            pos_rot = pos @ rot
+            nxr[i, j] = pos_rot[0]
+            nyr[i, j] = pos_rot[1]
+            nzr[i, j] = pos_rot[2]
+
+    longitude_r = np.arctan2(nyr, nxr)
+    latitude_r = np.arctan2(nzr, np.sqrt(nxr * nxr + nyr * nyr))
+    ex = longitude_r / math.pi
+    ey = 2 * latitude_r / math.pi
+
+    ex = (ex + 1.0) * (width / 2.0)
+    ey = (ey + 1.0) * (height / 2.0)
+
+    return ex.astype(np.float32), ey.astype(np.float32)
