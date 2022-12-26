@@ -35,8 +35,8 @@ def equirectangular(src):
     :param src: 3d point
     :return: 2d point on to equirectangular
     """
-    longitude = math.atan2(src[2], src[0])
-    latitude = math.atan2(src[1], math.sqrt(src[0] ** 2 + src[2] ** 2))
+    longitude = math.atan2(src[1], src[0])
+    latitude = math.atan2(src[2], math.sqrt(src[0] ** 2 + src[1] ** 2))
 
     x = longitude / math.pi
     y = (latitude * 2) / math.pi
@@ -118,3 +118,109 @@ def skew_symmetric(src):
     return np.array([[0, -src[2], src[1]],
                      [src[2], 0, -src[0]],
                      [-src[1], src[0], 0]])
+
+
+def find_corners(img, pattern_size):
+    ret, corner = cv2.findChessboardCorners(img, pattern_size)
+
+    pts = np.zeros((corner.shape[0], corner.shape[2]))
+    pts[:, 0] = corner[:, 0, 0]
+    pts[:, 1] = corner[:, 0, 1]
+
+    corner = normalize_point(img, pts)
+    return corner
+
+
+def draw_point_on_img(img, corners):
+    xg = img.shape[1] / 2
+    yg = img.shape[0] / 2
+
+    color = img.copy()
+    for pt in corners:
+        ip = (int((pt[0] + 1.0) * xg), int((pt[1] + 1.0) * yg))
+        cv2.drawMarker(color, ip, [0, 0, 255])
+    return color
+
+
+def equi_to_xyz(src):
+    longitude = src[0] * math.pi
+    latitude = (src[1] * math.pi) / 2.0
+    x = math.cos(latitude) * math.cos(longitude)
+    y = math.cos(latitude) * math.sin(longitude)
+    z = math.sin(latitude)
+    return np.array([x, y, z])
+
+
+def normalize_point(img, pts):
+    shape = img.shape
+    npts = pts.copy()
+
+    npts[:, 0] = npts[:, 0] / (shape[1] / 2) - 1.0
+    npts[:, 1] = npts[:, 1] / (shape[0] / 2) - 1.0
+    return npts
+
+
+def equi_to_xyz_array(corners):
+    pts = np.zeros((corners.shape[0], 3))
+    for i in range(corners.shape[0]):
+        pts[i] = equi_to_xyz(corners[i])
+
+    return pts
+
+
+def find_essential_mat(pts1, pts2):
+    emat = np.zeros((pts1.shape[0], 9))
+
+    for i in range(pts1.shape[0]):
+        tmp = np.array([pts1[i, 0] * pts2[i, 0], pts1[i, 0] * pts2[i, 1], pts1[i, 0] * pts2[i, 2],
+                        pts1[i, 1] * pts2[i, 0], pts1[i, 1] * pts2[i, 1], pts1[i, 1] * pts2[i, 2],
+                        pts1[i, 2] * pts2[i, 0], pts1[i, 2] * pts2[i, 1], pts1[i, 2] * pts2[i, 2]])
+        emat[i, :] = tmp
+
+    u, s, vh = np.linalg.svd(emat)
+    vec = vh[8, :].reshape(3, 3)
+
+    ue, se, vhe = np.linalg.svd(vec)
+    ret = ue @ np.diag([1, 1, 0]) @ vhe
+    # print(ret)
+    # print(emat @ ret.reshape(9, -1))
+
+    return ret
+
+
+def decompose_essential_mat(e, pts, pts2):
+    eet = e @ e.transpose()
+    u, s, vh = np.linalg.svd(eet)
+    t1 = vh[2, :]
+    print(s)
+
+    sst1 = skew_symmetric(t1)
+    sum_ab = 0
+    for i in range(pts.shape[0]):
+        a = sst1 @ pts[i]
+        b = e @ pts2[i]
+        sum_ab += a.transpose() @ b
+
+    t2 = -t1
+    if sum_ab >= 0:
+        e1 = e
+    else:
+        e1 = -e
+
+    k = -sst1 @ e1
+    uk, sk, vhk = np.linalg.svd(k)
+    r = uk @ np.diag([1, 1, np.linalg.det(uk @ vhk)]) @ vhk
+    print(r)
+
+    sum_ab = 0
+    for i in range(pts.shape[0]):
+        a = np.cross(r.transpose() @ t1, r.transpose() @ pts[i])
+        b = np.cross(r.transpose() @ pts[i], pts2[i])
+        sum_ab += a.transpose() @ b
+
+    if sum_ab > 0:
+        t = t1
+    else:
+        t = t2
+
+    return r, t
