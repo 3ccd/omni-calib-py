@@ -1,4 +1,4 @@
-
+import glob
 import numpy as np
 import cv2
 
@@ -10,33 +10,47 @@ def test():
 
     rp = utils.gen_points(pc)
     pp = utils.projection([0, 0, 0], [0, 0, 0], rp)
-    p2 = utils.projection([0, 0, -1], [np.radians(10.0), np.radians(40.0), 0], rp)
+    p2 = utils.projection([0, 0, -1], [0.0, 0.0, np.radians(40.0)], rp)
 
     run(pp, p2)
 
 
-def stereo_img():
-    img = cv2.imread("resources/R0010146.JPG")
-    img2 = cv2.imread("resources/R0010147.JPG")
-
+def find_points(img):
     corners = utils.find_corners(img, (12, 8))
     pp = utils.equi_to_xyz_array(corners)
-
-    corners2 = utils.find_corners(img2, (12, 8))
-    pp2 = utils.equi_to_xyz_array(corners2)
 
     color = utils.draw_point_on_img(img, corners)
     color = cv2.resize(color, dsize=(1280, 720))
     cv2.imshow("img", color)
     cv2.waitKey(0)
 
-    color2 = utils.draw_point_on_img(img2, corners2)
-    color2 = cv2.resize(color2, dsize=(1280, 720))
-    cv2.imshow("img1", color2)
-    cv2.waitKey(0)
+    return pp
 
+
+def stereo_img():
+    upper_img_list = sorted(glob.glob("resources/Upper/*"))
+    lower_img_list = sorted(glob.glob("resources/Lower/*"))
+
+    if len(upper_img_list) != len(lower_img_list):
+        print("Requires the same number of images from both cameras.")
+        exit(-1)
+
+    pp = np.empty([1, 3])
+    pp2 = np.empty([1, 3])
+
+    for i in range(len(upper_img_list)):
+        img = cv2.imread(upper_img_list[i])
+        img2 = cv2.imread(lower_img_list[i])
+
+        pp = np.append(pp, find_points(img), axis=0)
+        pp2 = np.append(pp2, find_points(img2), axis=0)
+
+    pp = np.delete(pp, 0, 0)
+    pp2 = np.delete(pp2, 0, 0)
     r, _ = run(pp, pp2)
 
+    color2 = cv2.imread(lower_img_list[0])
+    color2 = cv2.resize(color2, (1280, 720))
     map_x, map_y = utils.rotate_equi((color2.shape[1], color2.shape[0]), r)
     cal_img = cv2.remap(color2, map_x, map_y, cv2.INTER_LINEAR)
     cv2.imshow("calibrated", cal_img)

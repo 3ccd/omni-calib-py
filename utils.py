@@ -138,7 +138,7 @@ def draw_point_on_img(img, corners):
     color = img.copy()
     for pt in corners:
         ip = (int((pt[0] + 1.0) * xg), int((pt[1] + 1.0) * yg))
-        cv2.drawMarker(color, ip, [0, 0, 255])
+        cv2.circle(color, ip, 20, [0, 0, 255], thickness=10)
     return color
 
 
@@ -230,6 +230,8 @@ def rotate_equi(img_size, rot):
     width = img_size[0]
     height = img_size[1]
 
+    rot = rot.transpose()
+
     x, y = np.meshgrid(np.linspace(-1.0, 1.0, width),
                        np.linspace(-1.0, 1.0, height))
 
@@ -246,7 +248,7 @@ def rotate_equi(img_size, rot):
     for i in range(height):
         for j in range(width):
             pos = np.array([nx[i, j], ny[i, j], nz[i, j]])
-            pos_rot = pos @ rot
+            pos_rot = rot @ pos
             nxr[i, j] = pos_rot[0]
             nyr[i, j] = pos_rot[1]
             nzr[i, j] = pos_rot[2]
