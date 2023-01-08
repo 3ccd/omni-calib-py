@@ -12,21 +12,23 @@ def draw_points(img, pts1, pts2):
     :return:
     """
 
+    width = img.shape[1]
+    height = img.shape[0]
     for i in range(pts1.shape[0]):
         point1 = pts1[i, :]
         ep1 = equirectangular(point1)
-        ep1 = (ep1 + 1.0) * 128.0
+        ep1 = (ep1 + 1.0) * (width / 2)
 
         point2 = pts2[i, :]
         ep2 = equirectangular(point2)
-        ep2 = (ep2 + 1.0) * 128.0
-        ep2[1] += 256.0
+        ep2 = (ep2 + 1.0) * (width / 2)
+        ep2[1] += width
 
         cv2.line(img, ep2.astype(np.uint16), ep1.astype(np.uint16), [0, 255, 255])
         cv2.drawMarker(img, ep1.astype(np.uint16), [255, 0, 0])
         cv2.drawMarker(img, ep2.astype(np.uint16), [0, 255, 0])
 
-    cv2.line(img, (0, 256), (256, 256), (255, 255, 255))
+    cv2.line(img, (0, width), (width, width), (255, 255, 255))
 
 
 def equirectangular(src):
@@ -53,7 +55,7 @@ def gen_points(cp):
     :param cp: points quantity
     :return: points
     """
-    # np.random.seed(seed=32)
+    np.random.seed(seed=32)
     points = np.random.rand(cp, 3)
     points = (points - 0.5) * 20.0
     return points
@@ -192,7 +194,6 @@ def decompose_essential_mat(e, pts, pts2):
     eet = e @ e.transpose()
     u, s, vh = np.linalg.svd(eet)
     t1 = vh[2, :]
-    print(s)
 
     sst1 = skew_symmetric(t1)
     sum_ab = 0
@@ -210,7 +211,6 @@ def decompose_essential_mat(e, pts, pts2):
     k = -sst1 @ e1
     uk, sk, vhk = np.linalg.svd(k)
     r = uk @ np.diag([1, 1, np.linalg.det(uk @ vhk)]) @ vhk
-    print(r)
 
     sum_ab = 0
     for i in range(pts.shape[0]):
@@ -230,8 +230,6 @@ def rotate_equi(img_size, rot):
     width = img_size[0]
     height = img_size[1]
 
-    rot = rot.transpose()
-
     x, y = np.meshgrid(np.linspace(-1.0, 1.0, width),
                        np.linspace(-1.0, 1.0, height))
 
@@ -248,7 +246,7 @@ def rotate_equi(img_size, rot):
     for i in range(height):
         for j in range(width):
             pos = np.array([nx[i, j], ny[i, j], nz[i, j]])
-            pos_rot = rot @ pos
+            pos_rot = pos @ rot
             nxr[i, j] = pos_rot[0]
             nyr[i, j] = pos_rot[1]
             nzr[i, j] = pos_rot[2]
