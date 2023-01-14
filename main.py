@@ -17,14 +17,15 @@ def test():
 
 
 def find_points(img):
-    print("find points")
+    print("--> find points")
     corners = utils.find_corners(img, (7, 10))
     pp = utils.equi_to_xyz_array(corners)
+    print("--> end of process")
 
     color = utils.draw_point_on_img(img, corners)
     color = cv2.resize(color, dsize=(720, 480))
     cv2.imshow("img", color)
-    cv2.waitKey(0)
+    cv2.waitKey(20)
 
     return pp
 
@@ -53,7 +54,7 @@ def stereo_img():
     pp2 = np.delete(pp2, 0, 0)
     r, t = run(pp, pp2)
 
-    t_cal_r = direction_to_rotate(t)
+    t_cal_r = utils.direction_to_rotate(t)
 
     color = cv2.imread(upper_img_list[0])
     color = cv2.resize(color, (720, 480))
@@ -69,61 +70,36 @@ def stereo_img():
     cv2.imshow("calibrated_lower", cal_img)
     cv2.waitKey(0)
 
+    np.savez("./cal_data", r, t)
+
+
+def preview_points(title, pp, p2):
+    img = np.zeros([480, 960, 3], dtype=np.uint8)
+    utils.draw_points(img, pp, p2)
+    cv2.imshow(title, img)
+    cv2.waitKey(0)
+
 
 def run(pp, p2):
-    np.set_printoptions(suppress=True)
-
-    img = np.zeros([1024, 512, 3], dtype=np.uint8)
-
-    utils.draw_points(img, pp, p2)
-    cv2.imshow('show', img)
-    cv2.waitKey(0)
+    preview_points('correspond', pp, p2)
 
     e = utils.find_essential_mat(pp, p2)
     r, t = utils.decompose_essential_mat(e, pp, p2)
-    print(t)
-    print(r)
 
-    p2_cal = np.zeros(p2.shape)
+    t_cal_r = utils.direction_to_rotate(t)
+
     pp_cal = np.zeros(pp.shape)
-
-    #t_cal_r = utils.rotation_mat(direction_to_euler(t))
-    #print(t_cal_r)
-    #t_cal_r = np.identity(3)
-    t_cal_r = direction_to_rotate(t)
-    print(t_cal_r)
+    p2_cal = np.zeros(p2.shape)
     for i in range(p2.shape[0]):
-        p2_cal[i] = t_cal_r @ r @ p2[i]
         pp_cal[i] = t_cal_r @ pp[i]
+        p2_cal[i] = t_cal_r @ r @ p2[i]
 
-    img = np.zeros([1024, 512, 3], dtype=np.uint8)
-    utils.draw_points(img, pp_cal, p2_cal)
-    cv2.imshow('show1', img)
-    cv2.waitKey(0)
+    preview_points('correspond_calibrated', pp_cal, p2_cal)
 
     return r, t
 
 
-def direction_to_rotate(direction):
-    xaxis = np.cross(direction, np.array([0, 1, 0]))
-    yaxis = np.cross(direction, xaxis)
-
-    r = np.array([
-        [xaxis[0], xaxis[1], xaxis[2]],
-        [yaxis[0], yaxis[1], yaxis[2]],
-        [direction[0], direction[1], direction[2]]
-    ])
-
-    return utils.rotation_mat([0, np.radians(90.0), np.radians(180.0)]) @ r
-
-
-def direction_to_euler(direction):
-    pitch = math.atan2(direction[2], math.sqrt(direction[0] ** 2 + direction[1] ** 2))
-    yaw = math.atan2(direction[1], direction[0])
-    roll = math.acos(math.sqrt(direction[0] ** 2 + direction[1] ** 2) / math.sqrt(
-        direction[0] ** 2 + direction[1] ** 2 + direction[2] ** 2))
-    return pitch, roll, yaw
-
-
 if __name__ == "__main__":
+    np.set_printoptions(suppress=True)
+
     stereo_img()

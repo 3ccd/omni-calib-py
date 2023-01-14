@@ -14,21 +14,24 @@ def draw_points(img, pts1, pts2):
 
     width = img.shape[1]
     height = img.shape[0]
+    br = height / 2
     for i in range(pts1.shape[0]):
         point1 = pts1[i, :]
-        ep1 = equirectangular(point1)
-        ep1 = (ep1 + 1.0) * (width / 2)
+        ep1 = equirectangular(point1) + 1.0
+        ep1[0] *= width / 2
+        ep1[1] *= br / 2
 
         point2 = pts2[i, :]
-        ep2 = equirectangular(point2)
-        ep2 = (ep2 + 1.0) * (width / 2)
-        ep2[1] += width
+        ep2 = equirectangular(point2) + 1.0
+        ep2[0] *= width / 2
+        ep2[1] *= br / 2
+        ep2[1] += br
 
         cv2.line(img, ep2.astype(np.uint16), ep1.astype(np.uint16), [0, 255, 255])
         cv2.drawMarker(img, ep1.astype(np.uint16), [255, 0, 0])
         cv2.drawMarker(img, ep2.astype(np.uint16), [0, 255, 0])
 
-    cv2.line(img, (0, width), (width, width), (255, 255, 255))
+    cv2.line(img, (0, int(br)), (width, int(br)), (255, 255, 255))
 
 
 def equirectangular(src):
@@ -240,16 +243,15 @@ def rotate_equi(img_size, rot):
     ny = np.cos(latitude) * np.sin(longitude)
     nz = np.sin(latitude)
 
-    nxr = np.zeros(nx.shape)
-    nyr = np.zeros(ny.shape)
-    nzr = np.zeros(nz.shape)
+    rotm = np.zeros([nx.shape[0], nx.shape[1], 3])
+    mix = np.dstack([np.dstack([nx, ny]), nz])
     for i in range(height):
         for j in range(width):
-            pos = np.array([nx[i, j], ny[i, j], nz[i, j]])
-            pos_rot = pos @ rot
-            nxr[i, j] = pos_rot[0]
-            nyr[i, j] = pos_rot[1]
-            nzr[i, j] = pos_rot[2]
+            rotm[i, j, :] = rot @ mix[i, j, :]
+
+    nxr = rotm[:, :, 0]
+    nyr = rotm[:, :, 1]
+    nzr = rotm[:, :, 2]
 
     longitude_r = np.arctan2(nyr, nxr)
     latitude_r = np.arctan2(nzr, np.sqrt(nxr * nxr + nyr * nyr))
@@ -260,3 +262,25 @@ def rotate_equi(img_size, rot):
     ey = (ey + 1.0) * (height / 2.0)
 
     return ex.astype(np.float32), ey.astype(np.float32)
+
+
+def direction_to_rotate(direction):
+    xaxis = np.cross(direction, np.array([0, 1, 0]))
+    yaxis = np.cross(direction, xaxis)
+
+    r = np.array([
+        [xaxis[0], xaxis[1], xaxis[2]],
+        [yaxis[0], yaxis[1], yaxis[2]],
+        [direction[0], direction[1], direction[2]]
+    ])
+
+    # return utils.rotation_mat([0, np.radians(90.0), np.radians(180.0)]) @ r
+    return r
+
+
+def load_rt(path):
+    print("load calibration data")
+    cal = np.load(path)
+    r = cal["arr_0"]
+    t = cal["arr_1"]
+    return r, t
