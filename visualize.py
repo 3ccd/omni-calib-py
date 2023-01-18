@@ -10,6 +10,11 @@ def run(d_img, color=None):
     d_img = cv2.rotate(d_img, cv2.ROTATE_90_CLOCKWISE)
     color = cv2.rotate(color, cv2.ROTATE_90_CLOCKWISE)
     color = cv2.resize(color, [d_img.shape[1], d_img.shape[0]])
+
+    d_img_p = np.zeros(d_img.shape)
+    d_img_p[80:-80, :] = d_img[80:-80, :]
+    d_img = d_img_p
+
     cv2.imshow("show", d_img)
     cv2.waitKey(0)
     cv2.imshow("show1", color)
@@ -23,19 +28,21 @@ def run(d_img, color=None):
             ni = (i - (d_img.shape[0] / 2)) / d_img.shape[0] * 2
             ji = (j - (d_img.shape[1] / 2)) / d_img.shape[1] * 2
             vec = utils.equi_to_xyz([ji, ni])
-            norm = (1 - d_img[i, j])
-            pt = vec * (norm + (np.cos(ni)))**2
 
-            if not d_img[i, j] <= 0.1:
-                pcd.points.append([pt[0], pt[1], pt[2]])
-                pcd.colors.append(color[i, j, :] / 255.0)
+            if d_img[i, j] <= 0.08:
+                continue
+
+            norm = (1 / d_img[i, j])
+            pt = vec * (norm * (np.cos(ni)))
+
+            pcd.points.append([pt[0], pt[1], pt[2]])
+            pcd.colors.append(color[i, j, :] / 255.0)
 
     open3d.visualization.draw_geometries(
         [pcd],
         width=600,
         height=600
     )
-
 
 
 if __name__ == "__main__":

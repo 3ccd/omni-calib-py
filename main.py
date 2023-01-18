@@ -31,8 +31,8 @@ def find_points(img):
 
 
 def stereo_img():
-    upper_img_list = sorted(glob.glob("resources/Upper/*"))
-    lower_img_list = sorted(glob.glob("resources/Lower/*"))
+    upper_img_list = sorted(glob.glob("resources/Upper/*.JPG"))
+    lower_img_list = sorted(glob.glob("resources/Lower/*.JPG"))
 
     if len(upper_img_list) != len(lower_img_list):
         print("Requires the same number of images from both cameras.")
