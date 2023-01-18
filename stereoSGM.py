@@ -10,8 +10,8 @@ import utils
 def load_img(upper_img, lower_img):
     print("loading : ", upper_img)
     print("loading : ", lower_img)
-    imgU = cv2.resize(cv2.imread(upper_img), [720, 720])
-    imgL = cv2.resize(cv2.imread(lower_img), [720, 720])
+    imgU = cv2.resize(cv2.imread(upper_img), [1280, 720])
+    imgL = cv2.resize(cv2.imread(lower_img), [1280, 720])
     # imgU = cv2.imread(upper_img_list[0])
     # imgL = cv2.imread(lower_img_list[0])
     return imgU, imgL
