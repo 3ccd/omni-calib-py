@@ -10,10 +10,10 @@ import utils
 def load_img(upper_img, lower_img):
     print("loading : ", upper_img)
     print("loading : ", lower_img)
-    imgU = cv2.resize(cv2.imread(upper_img), [1280, 720])
-    imgL = cv2.resize(cv2.imread(lower_img), [1280, 720])
-    # imgU = cv2.imread(upper_img_list[0])
-    # imgL = cv2.imread(lower_img_list[0])
+    imgU = cv2.resize(cv2.imread(upper_img), [640, 320])
+    imgL = cv2.resize(cv2.imread(lower_img), [640, 320])
+    # imgU = cv2.imread(upper_img)
+    # imgL = cv2.imread(lower_img)
     return imgU, imgL
 
 
@@ -60,9 +60,9 @@ def get_calibrated_img(imgU, imgL, r, t):
 def run(cal_img_u, cal_img_l):
 
     # disparity range is tuned for 'aloe' image pair
-    window_size = 9
+    window_size = 3
     min_disp = 0
-    num_disp = 16 * 5
+    num_disp = 16 * 4
     stereo = cv2.StereoSGBM_create(minDisparity=min_disp,
                                    numDisparities=num_disp,
                                    blockSize=window_size,
@@ -70,7 +70,7 @@ def run(cal_img_u, cal_img_l):
                                    # P1=window_size ** 2,
                                    P2=32 * 3 * window_size ** 2,
                                    disp12MaxDiff=1,
-                                   uniquenessRatio=0,
+                                   uniquenessRatio=5,
                                    speckleWindowSize=100,
                                    speckleRange=32
                                    )
@@ -84,7 +84,7 @@ def run(cal_img_u, cal_img_l):
 
 
 if __name__ == "__main__":
-    img_u, img_l = load_img("resources/input/R0010028.JPG", "resources/input/R0010187.JPG")
+    img_u, img_l = load_img("resources/input/R0010030.JPG", "resources/input/R0010189.JPG")
     r_, t_ = utils.load_rt("cal_data.npz")
     cal_u, cal_l = get_calibrated_img(img_u, img_l, r_, t_)
     ret = run(cal_u, cal_l)

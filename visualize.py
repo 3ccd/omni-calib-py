@@ -22,7 +22,7 @@ def run(d_img, color=None):
     cv2.waitKey(0)
 
     d_img_p = np.zeros(d_img.shape)
-    d_img_p[80:-80, :] = d_img[80:-80, :]
+    d_img_p[20:-20, :] = d_img[20:-20, :]
     d_img = d_img_p
 
     pcd = open3d.geometry.PointCloud()
@@ -34,7 +34,7 @@ def run(d_img, color=None):
             ji = (j - (d_img.shape[1] / 2)) / (d_img.shape[1] / 2)
             vec = utils.equi_to_xyz([ji, ni])
 
-            if d_img[i, j] <= 0:
+            if d_img[i, j] <= 0.0:
                 continue
 
             norm = (1 / d_img[i, j])
@@ -45,8 +45,23 @@ def run(d_img, color=None):
             pcd.points.append([pt[0], pt[1], pt[2]])
             pcd.colors.append(color[i, j, :] / 255.0)
 
+    print("estimate normal")
+    pcd.estimate_normals(
+        search_param=open3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
+    )
+    pcd.orient_normals_consistent_tangent_plane(10)
+
+    distances = pcd.compute_nearest_neighbor_distance()
+    avg_dist = np.mean(distances)
+    radius = 2 * avg_dist
+    radii = open3d.utility.DoubleVector([radius, radius*2])
+
+    print("create mesh from point cloud")
+    rec_mesh = open3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(pcd=pcd, radii=radii)
+    print("end of process")
+
     open3d.visualization.draw_geometries(
-        [pcd],
+        [rec_mesh],
         width=600,
         height=600
     )
@@ -54,4 +69,4 @@ def run(d_img, color=None):
 
 if __name__ == "__main__":
     color_img = cv2.imread("tmp/upper_tmp.png")
-    run(np.load("parallax.npy"), color_img)
+    run(np.load("crestereo_infer_res.npy"), color_img)
