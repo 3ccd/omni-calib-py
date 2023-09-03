@@ -4,10 +4,10 @@ import cv2
 
 import utils
 
+map_x, map_y = utils.rotate_equi((5376, 2688), utils.rotation_mat((np.radians(-90.0), 0.0, 0.0)))
+
 
 def rotate(files):
-    map_x, map_y = utils.rotate_equi((5376, 2688), utils.rotation_mat((np.radians(-90.0), 0.0, 0.0)))
-
     for file in files:
         print("process for ", file)
         img = cv2.imread(file)
