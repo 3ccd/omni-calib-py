@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 
 import utils
-import stereoSGM
 
 
 def run(d_img, color=None):
@@ -22,7 +21,7 @@ def run(d_img, color=None):
     cv2.waitKey(0)
 
     d_img_p = np.zeros(d_img.shape)
-    d_img_p[80:-80, :] = d_img[80:-80, :]
+    d_img_p[100:-100, :] = d_img[100:-100, :]
     d_img = d_img_p
 
     pcd = open3d.geometry.PointCloud()
@@ -34,7 +33,7 @@ def run(d_img, color=None):
             ji = (j - (d_img.shape[1] / 2)) / (d_img.shape[1] / 2)
             vec = utils.equi_to_xyz([ji, ni])
 
-            if d_img[i, j] <= 0:
+            if d_img[i, j] <= 0.1:
                 continue
 
             norm = (1 / d_img[i, j])

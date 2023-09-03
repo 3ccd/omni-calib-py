@@ -10,10 +10,12 @@ import utils
 def load_img(upper_img, lower_img):
     print("loading : ", upper_img)
     print("loading : ", lower_img)
-    imgU = cv2.resize(cv2.imread(upper_img), [1280, 720])
-    imgL = cv2.resize(cv2.imread(lower_img), [1280, 720])
+    imgU = cv2.resize(cv2.imread(upper_img), [640, 480])
+    imgL = cv2.resize(cv2.imread(lower_img), [640, 480])
     # imgU = cv2.imread(upper_img_list[0])
     # imgL = cv2.imread(lower_img_list[0])
+    cv2.imshow("prev", imgU)
+    cv2.waitKey(0)
     return imgU, imgL
 
 
@@ -29,7 +31,7 @@ def show(out):
     out = (out * 255).astype(np.uint8)
     out = cv2.applyColorMap(out, cv2.COLORMAP_JET)
 
-    out = cv2.rotate(cv2.resize(out, [720, 1280]), cv2.ROTATE_90_CLOCKWISE)
+    out = cv2.rotate(cv2.resize(out, [480, 640]), cv2.ROTATE_90_CLOCKWISE)
     cv2.imshow('disparity', out)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -60,9 +62,9 @@ def get_calibrated_img(imgU, imgL, r, t):
 def run(cal_img_u, cal_img_l):
 
     # disparity range is tuned for 'aloe' image pair
-    window_size = 9
+    window_size = 3
     min_disp = 0
-    num_disp = 16 * 5
+    num_disp = 16 * 3
     stereo = cv2.StereoSGBM_create(minDisparity=min_disp,
                                    numDisparities=num_disp,
                                    blockSize=window_size,
@@ -70,12 +72,12 @@ def run(cal_img_u, cal_img_l):
                                    # P1=window_size ** 2,
                                    P2=32 * 3 * window_size ** 2,
                                    disp12MaxDiff=1,
-                                   uniquenessRatio=0,
-                                   speckleWindowSize=100,
+                                   preFilterCap=31,
+                                   uniquenessRatio=10,
+                                   speckleWindowSize=200,
                                    speckleRange=32
                                    )
 
-    print('computing disparity...')
     disparity = stereo.compute(cal_img_u, cal_img_l).astype(np.float32) / 16.0
     out = ((disparity - min_disp) / num_disp)
     out = out[:, num_disp:-num_disp]

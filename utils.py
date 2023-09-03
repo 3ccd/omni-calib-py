@@ -284,3 +284,39 @@ def load_rt(path):
     r = cal["arr_0"]
     t = cal["arr_1"]
     return r, t
+
+
+def fisheye_to_equi(img_size, fisheye_size, aperture, polar=True):
+    map_x = np.zeros(img_size)
+    map_y = np.zeros(img_size)
+
+    pol = 1
+    if not polar:
+        pol = -1
+
+    for i in range(img_size[1]):
+        for j in range(img_size[0]):
+
+            # normalize coordinate
+            x = (i - (img_size[1] / 2)) / (img_size[1] / 2)
+            y = (j - (img_size[0] / 2)) / (img_size[0] / 2)
+
+            # equirectangular to 3d vector
+            longitude = pol * x * math.pi
+            latitude = pol * y * math.pi / 2
+            px = math.cos(latitude) * math.cos(longitude)
+            py = math.cos(latitude) * math.sin(longitude)
+            pz = math.sin(latitude)
+
+            # 3d vector to 2d fisheye
+            r = 2 * math.atan2(math.sqrt((px ** 2) + (pz ** 2)), py) / aperture
+            theta = math.atan2(px, pz)
+            tx = r * math.cos(theta)
+            ty = r * math.sin(theta)
+
+            # normalized coordinate to image space
+            tmp = fisheye_size / 2
+            map_x[j, i] = (tx * tmp) + tmp
+            map_y[j, i] = (ty * tmp) + tmp
+
+    return map_x.astype(np.float32), map_y.astype(np.float32)

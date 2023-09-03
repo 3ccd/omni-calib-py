@@ -31,6 +31,7 @@ def find_points(img):
 
 
 def stereo_img():
+    # load images
     upper_img_list = sorted(glob.glob("resources/Upper/*.JPG"))
     lower_img_list = sorted(glob.glob("resources/Lower/*.JPG"))
 
@@ -38,6 +39,7 @@ def stereo_img():
         print("Requires the same number of images from both cameras.")
         exit(-1)
 
+    # corner points array
     pp = np.empty([1, 3])
     pp2 = np.empty([1, 3])
 
